@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrowdLumen: Intelligent Safety</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-color: #2196F3;
+            --text-color: #ffffff;
+            --risk-low: #4caf50;
+            --risk-med: #ff9800;
+            --risk-high: #f44336;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .video-panel {
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .video-container {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .stats-panel {
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        h2 {
+            font-size: 1.0rem;
+            color: #aaa;
+            margin-top: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .control-group {
+            background: #2c2c2c;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        select,
+        button {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border-radius: 4px;
+            border: none;
+            background: #444;
+            color: white;
+        }
+
+        button {
+            cursor: pointer;
+            background: var(--primary-color);
+            font-weight: 600;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .stat-card {
+            background: #252525;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .risk-low {
+            color: var(--risk-low);
+        }
+
+        .risk-medium {
+            color: var(--risk-med);
+        }
+
+        .risk-high {
+            color: var(--risk-high);
+        }
+
+        .explanation-box {
+            background: #332b00;
+            border: 1px solid #665200;
+            color: #ffe680;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            margin-top: 10px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+        }
+
+        .action-list {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            color: #ddd;
+            margin-top: 5px;
+        }
+
+        .action-item {
+            text-align: center;
+            background: #333;
+            padding: 5px;
+            border-radius: 4px;
+            min-width: 50px;
+        }
+
+        .action-count {
+            font-weight: bold;
+            font-size: 1.2em;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="video-panel">
+            <div class="video-container">
+                <img src="{{ url_for('video_feed') }}" alt="Live Feed">
+            </div>
+            <div
+                style="position: absolute; top: 30px; right: 30px; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 4px; color: #fff;">
+                FPS: <span id="fps-val">0</span>
+            </div>
+        </div>
+
+        <div class="stats-panel">
+            <h1>CrowdLumen AI</h1>
+
+            <!-- Controls -->
+            <div class="control-group">
+                <label>Context / Scene</label>
+                <select id="context-select" onchange="setContext()">
+                    <option value="GENERAL">General</option>
+                    <option value="RAILWAY_STATION">Railway Station</option>
+                    <option value="PUBLIC_SQUARE">Public Square</option>
+                    <option value="BUS_STAND">Bus Stand</option>
+                </select>
+
+                <label style="margin-top:10px; display:block;">Camera</label>
+                <select id="camera-select" onchange="switchCamera()">
+                    <option value="0">Camera 0</option>
+                    <option value="1">Camera 1</option>
+                </select>
+            </div>
+
+            <!-- Threat -->
+            <div class="stat-card">
+                <span class="stat-value" id="risk-display">-</span>
+                <span class="stat-label">Threat Level</span>
+                <div id="explanation-text" class="explanation-box">Initializing...</div>
+            </div>
+
+            <!-- Audio Intelligence (Real-Time Spectrum) -->
+            <div class="stat-card" style="border: 1px solid #444; background: #1a1a1a;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="stat-label">Acoustic Spectrum</span>
+                    <span id="audio-status"
+                        style="font-size:0.8em; padding:2px 6px; border-radius:4px; background:#333;">Calm</span>
+                </div>
+
+                <div style="font-size:0.7em; color:#666; margin-bottom: 5px;">Source: <span
+                        id="audio-source">Initializing...</span></div>
+
+                <!-- Frequency Bars -->
+                <div
+                    style="display:flex; justify-content:space-between; align-items:flex-end; height:60px; margin-top:10px; gap:4px;">
+                    <!-- Bass -->
+                    <div
+                        style="flex:1; background:#333; height:100%; display:flex; align-items:flex-end; border-radius:3px;">
+                        <div id="bar-0" style="width:100%; height:10%; background:#2196F3; border-radius:3px;"></div>
+                    </div>
+                    <!-- Low Mid -->
+                    <div
+                        style="flex:1; background:#333; height:100%; display:flex; align-items:flex-end; border-radius:3px;">
+                        <div id="bar-1" style="width:100%; height:20%; background:#2196F3; border-radius:3px;"></div>
+                    </div>
+                    <!-- Mid -->
+                    <div
+                        style="flex:1; background:#333; height:100%; display:flex; align-items:flex-end; border-radius:3px;">
+                        <div id="bar-2" style="width:100%; height:40%; background:#00BCD4; border-radius:3px;"></div>
+                    </div>
+                    <!-- High Mid -->
+                    <div
+                        style="flex:1; background:#333; height:100%; display:flex; align-items:flex-end; border-radius:3px;">
+                        <div id="bar-3" style="width:100%; height:20%; background:#00BCD4; border-radius:3px;"></div>
+                    </div>
+                    <!-- Treble -->
+                    <div
+                        style="flex:1; background:#333; height:100%; display:flex; align-items:flex-end; border-radius:3px;">
+                        <div id="bar-4" style="width:100%; height:10%; background:#80DEEA; border-radius:3px;"></div>
+                    </div>
+                </div>
+
+                <div style="margin-top:5px; display:flex; justify-content:space-between; font-size:0.7em; color:#888;">
+                    <span>Bass</span><span>Mid</span><span>Treb</span>
+                </div>
+
+                <div style="margin-top:10px; border-top:1px solid #333; padding-top:5px; text-align:right;">
+                    <span id="db-val" style="font-weight:bold; font-size:1.1em; color:#fff;">0 dB</span>
+                </div>
+            </div>
+
+            <!-- Reliability & Score -->
+            <div style="display: flex; gap: 10px;">
+                <div class="stat-card" style="flex: 1;">
+                    <span class="stat-value" id="conf-score">100%</span>
+                    <span class="stat-label">Reliability</span>
+                </div>
+                <div class="stat-card" style="flex: 1;">
+                    <span class="stat-value" id="threat-score">0.0</span>
+                    <span class="stat-label">Score</span>
+                </div>
+            </div>
+
+            <!-- Action Breakdown -->
+            <h2>Live Action Analysis</h2>
+            <div class="action-list" id="action-list">
+                <!-- Populated by JS -->
+                <div class="action-item"><span class="action-count">0</span>Sit</div>
+                <div class="action-item"><span class="action-count">0</span>Stand</div>
+                <div class="action-item"><span class="action-count">0</span>Walk</div>
+                <div class="action-item"><span class="action-count">0</span>Run</div>
+            </div>
+
+            <!-- Metrics -->
+            <h2>Metrics</h2>
+            <div style="display: flex; gap: 10px;">
+                <div class="stat-card" style="flex: 1;">
+                    <span class="stat-value" id="person-count">0</span>
+                    <span class="stat-label">Count</span>
+                </div>
+                <div class="stat-card" style="flex: 1;">
+                    <span class="stat-value" id="chaos-score">0.0</span>
+                    <span class="stat-label">Chaos</span>
+                </div>
+                <div class="stat-card" style="flex: 1;">
+                    <span class="stat-value" id="speed-val">0.0</span>
+                    <span class="stat-label">px/fr</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setContext() {
+            const val = document.getElementById('context-select').value;
+            fetch(`/api/set_context/${val}`);
+        }
+
+        function switchCamera() {
+            const val = document.getElementById('camera-select').value;
+            fetch(`/api/switch_camera/${val}`);
+        }
+
+        function updateStats() {
+            fetch('/api/stats')
+                .then(res => res.json())
+                .then(data => {
+                    // Threat
+                    const riskEl = document.getElementById('risk-display');
+                    riskEl.textContent = data.risk;
+                    riskEl.className = 'stat-value ' + (
+                        data.risk === 'CRITICAL' ? 'risk-high' :
+                            data.risk === 'HIGH' ? 'risk-high' :
+                                data.risk === 'MEDIUM' ? 'risk-medium' : 'risk-low'
+                    );
+
+                    document.getElementById('explanation-text').textContent = data.explanation;
+
+                    // Audio Viz
+                    const audio = data.audio;
+                    document.getElementById('db-val').textContent = Math.round(audio.db_level) + " dB";
+                    document.getElementById('audio-status').textContent = audio.status;
+                    document.getElementById('audio-source').textContent = audio.source;
+
+                    // Update Frequency Bars
+                    if (audio.bands) {
+                        for (let i = 0; i < 5; i++) {
+                            const bar = document.getElementById(`bar-${i}`);
+                            const val = audio.bands[i] || 5;
+                            bar.style.height = val + "%";
+
+                            // React color to intensity
+                            if (val > 80) bar.style.background = "#FF5252";
+                            else if (val > 60) bar.style.background = "#FF9800";
+                            else bar.style.background = "#2196F3";
+                        }
+                    }
+
+                    // Status Color
+                    if (audio.anomaly) {
+                        document.getElementById('audio-status').style.background = "#F44336";
+                        document.getElementById('audio-status').style.color = "white";
+                    } else {
+                        document.getElementById('audio-status').style.background = "#333";
+                        document.getElementById('audio-status').style.color = "#aaa";
+                    }
+
+                    // Stats
+                    document.getElementById('conf-score').textContent = Math.round(data.data_reliability) + "%";
+                    document.getElementById('threat-score').textContent = data.threat_score.toFixed(2);
+                    document.getElementById('person-count').textContent = data.count;
+                    document.getElementById('chaos-score').textContent = data.chaos.toFixed(2);
+                    document.getElementById('speed-val').textContent = data.speed.toFixed(1);
+                    document.getElementById('fps-val').textContent = data.fps;
+
+                    // Actions
+                    const actions = data.action_counts;
+                    const html = `
+                    <div class="action-item" style="border-bottom: 2px solid #4CAF50"><span class="action-count">${actions['Sitting'] || 0}</span>Sit</div>
+                    <div class="action-item"><span class="action-count">${actions['Standing'] || 0}</span>Stand</div>
+                    <div class="action-item"><span class="action-count">${actions['Walking'] || 0}</span>Walk</div>
+                    <div class="action-item" style="border-bottom: 2px solid #F44336"><span class="action-count">${actions['Running'] || 0}</span>Run</div>
+                `;
+                    document.getElementById('action-list').innerHTML = html;
+                })
+                .catch(err => console.error("Error fetching stats:", err));
+        }
+
+        setInterval(updateStats, 200); // Faster update (5fps) for audio viz
+    </script>
+</body>
+
+</html>
