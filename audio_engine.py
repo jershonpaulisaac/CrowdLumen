@@ -173,16 +173,13 @@ class AudioMonitor:
         
         # Fake FFT
         # Panic has more high freq?
-        self.bands = [
-             np.random.randint(20, 80), # Bass
-             np.random.randint(20, 80), 
-             np.random.randint(20, 80),
-             np.random.randint(20, 80),
-             np.random.randint(20, 80) # Treble
-        ]
-        if self.sim_mode == 'PANIC': # Boost highs
-            self.bands[3] += 20
-            self.bands[4] += 20
+        # Fake FFT
+        # Generate 32 bands
+        self.bands = [np.random.randint(10, 60) for _ in range(32)]
+        
+        if self.sim_mode == 'PANIC': # Boost highs (last 8 bands)
+             for i in range(24, 32):
+                 self.bands[i] += np.random.randint(20, 40)
 
     def _analyze_patterns(self):
         if len(self.db_history) < 10: return

@@ -10,7 +10,7 @@ from behavior_engine import BehaviorAnalyzer
 from context_engine import ContextEngine
 from reliability_engine import ReliabilityEngine
 from explanation_engine import ExplanationEngine
-from audio_engine import AudioMonitor
+
 
 app = Flask(__name__)
 
@@ -32,7 +32,7 @@ current_stats = {
         "status": "Calm", 
         "anomaly": False, 
         "sim_mode": "NORMAL",
-        "bands": [0,0,0,0,0],
+        "bands": [0] * 32, # Default for viz
         "source": "Init"
     }
 }
@@ -62,8 +62,9 @@ def init_system():
         explanation_engine = ExplanationEngine()
         
         # Audio - Real Mic Priority
-        audio_monitor = AudioMonitor(simulate=False)
-        audio_monitor.start()
+        # Audio - Frontend Authority Now
+        # audio_monitor = AudioMonitor(simulate=False)
+        # audio_monitor.start()
 
 def camera_loop():
     global output_frame, current_stats, requested_camera_index
@@ -91,8 +92,9 @@ def camera_loop():
         ret, frame = cap.read()
         context_settings = context_engine.get_settings()
         
-        # 1. Always Get Audio Data (Decoupled from Camera)
-        audio_stats = audio_monitor.get_stats()
+        # 1. Listen to Global State (Updated by Frontend API)
+        with lock:
+            audio_stats = current_stats["audio"]
         
         # Defaults for vision if camera fails
         count = current_stats["count"]
@@ -100,7 +102,7 @@ def camera_loop():
         risk = "LOW"
         threat_score = 0.0
         reliability = 0.0
-        explanation = "Camera Offline. Audio Active."
+        explanation = "System Active"
         chaos = 0.0
         speed = 0.0
         fps = 0.0
@@ -128,7 +130,7 @@ def camera_loop():
                     # Update global metrics only on processed frames
                     active_count = behavior_metrics['active_count']
                     action_counts = behavior_metrics['action_counts']
-                    chaos = behavior_metrics['chaos_score']
+                    chaos = behavior_metrics.get('flux_score', 0) # Mapped from Flux
                     speed = behavior_metrics['avg_speed']
                     
                     # 4. Analytics
@@ -197,11 +199,11 @@ def camera_loop():
             # Camera Fail
             time.sleep(0.05)
             # If we have previous stats, use them but mark reliability 0
-            explanation = "Camera FAILED. Audio Only Mode."
+            explanation = "System Active"
             
         # Audio Explanation Overlay
         if audio_stats['anomaly']:
-            explanation += f" [Audio Alert: {audio_stats['status']}]"
+            explanation = f"Audio Alert: {audio_stats['status']}"
 
         # 6. Alert (Trigger even if just audio is high? No, explicit rule says Audio alone cant trigger Critical)
         # But we pass the calculated risk.
@@ -228,7 +230,8 @@ def camera_loop():
             }
             
     cap.release()
-    audio_monitor.stop()
+    cap.release()
+    # audio_monitor.stop()
 
 def generate():
     global output_frame, lock
@@ -268,13 +271,35 @@ def switch_camera(index):
     
 @app.route("/api/audio_sim/<mode>")
 def audio_sim(mode):
-    if audio_monitor: audio_monitor.set_simulation_mode(mode_map(mode))
-    return jsonify({"status": "ok"}) 
+    # Deprecated or client-side control
+    return jsonify({"status": "deprecated_use_client"}) 
+
+@app.route("/api/update_audio", methods=['POST'])
+def update_audio():
+    """
+    Receives Audio Stats from the Browser (Frontend Authority).
+    Format: {db_level: float, risk_score: float, bands: list, status: str}
+    """
+    global current_stats, lock
+    data = request.json
+    if not data: return jsonify({"error": "no data"}), 400
     
+    with lock:
+        # Update the global audio stats used by CrowdAnalyzer
+        # We merge it into valid structure
+        current_stats["audio"] = {
+            "db_level": data.get("db_level", 0),
+            "risk_score": data.get("risk_score", 0),
+            "anomaly": data.get("risk_score", 0) > 0.6,    # Simple threshold
+            "status": data.get("status", "Normal"),
+            "variance": data.get("variance", 0),
+            "bands": data.get("bands", [0]*32),
+            "source": "Browser Mic"
+        }
+    return jsonify({"status": "ok"})
+
 def mode_map(m):
-    if m == 'l': return 'LOUD'
-    if m == 'p': return 'PANIC'
-    return 'NORMAL'
+    return 'NORMAL' # Stub
 
 def start_app():
     t = threading.Thread(target=camera_loop)

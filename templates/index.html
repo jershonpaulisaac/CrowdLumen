@@ -7,7 +7,7 @@
     <title>CrowdLumen: Intelligent Safety</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        <style> :root {
+        :root {
             --bg-color: #121212;
             --surface-color: #1e1e1e;
             --primary-color: #2196F3;
@@ -30,14 +30,44 @@
             box-sizing: border-box;
         }
 
+        /* Overlay for Audio Permission */
+        #startup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .start-btn {
+            background: var(--primary-color);
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+        }
+
         /* Top Row: Video (Left) + Sidebar (Right) */
         .top-row {
             display: flex;
             flex: 1;
-            /* Takes available space */
             gap: 15px;
             min-height: 0;
-            /* Important for scroll */
             margin-bottom: 15px;
         }
 
@@ -210,6 +240,49 @@
             color: var(--risk-high);
         }
 
+        /* Updated Risk Colors for Predictive System */
+        .risk-safe {
+            color: #4caf50;
+        }
+
+        .risk-warning {
+            color: #ff9800;
+            animation: pulse 2s infinite;
+        }
+
+        .risk-threat {
+            color: #f44336;
+            animation: flash 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes flash {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
         .explanation-box {
             background: #332b00;
             border: 1px solid #665200;
@@ -266,6 +339,7 @@
         .freq-bars {
             display: flex;
             align-items: flex-end;
+            justify-content: space-between;
             width: 100%;
             height: 100%;
             gap: 2px;
@@ -277,22 +351,42 @@
             display: flex;
             align-items: flex-end;
             background: rgba(255, 255, 255, 0.05);
+            /* Track background */
             border-radius: 2px;
         }
 
         .bar-fill {
             width: 100%;
             height: 0%;
-            background: linear-gradient(to top, #2196F3, #00BCD4);
+            /* Dynamic */
+
+            /* LED Segment Effect Gradient: Green -> Yellow -> Red */
+            background: linear-gradient(to top,
+                    #4CAF50 0%,
+                    #8BC34A 40%,
+                    #FFC107 70%,
+                    #FF5722 85%,
+                    #D32F2F 100%);
+
+            /* Segment Masking */
+            mask-image: repeating-linear-gradient(to top, black 0px, black 3px, transparent 3px, transparent 4px);
+            -webkit-mask-image: repeating-linear-gradient(to top, black 0px, black 3px, transparent 3px, transparent 4px);
+
             border-radius: 2px 2px 0 0;
-            transition: height 0.05s ease-out;
-            /* Smooth snappy transition */
-            min-height: 2px;
+            transition: height 0.05s linear;
+            /* Ultra fast for 60fps */
         }
     </style>
 </head>
 
 <body>
+
+    <!-- Startup Overlay -->
+    <div id="startup-overlay">
+        <h1>CrowdLumen Intelligent Safety</h1>
+        <p>Click below to initialize System & Audio Engine</p>
+        <button class="start-btn" onclick="initSystem()">INITIALIZE SYSTEM</button>
+    </div>
 
     <!-- Top Section -->
     <div class="top-row">
@@ -305,39 +399,44 @@
                 style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 4px; color: #fff; font-size: 0.8rem;">
                 FPS: <span id="fps-val">0</span>
             </div>
+            <!-- Dynamic Overlay -->
+            <div id="predictive-overlay"
+                style="position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 8px 12px; border-radius: 6px; color: #fff; border-left: 4px solid #4CAF50;">
+                <div style="font-size: 0.75rem; color: #aaa;">SYSTEM STATE</div>
+                <div id="overlay-state" style="font-weight: bold; font-size: 1.1rem;">NORMAL MONITORING</div>
+            </div>
         </div>
 
         <!-- Sidebar / Metrics -->
         <div class="sidebar">
             <h1>CrowdLumen AI</h1>
 
-            <!-- Threat Level (Prominent) -->
+            <!-- Threat Level -->
             <div class="stat-card">
-                <span class="stat-value" id="risk-display">...</span>
-                <span class="stat-label">Threat Level</span>
-                <div id="explanation-text" class="explanation-box">Initializing System...</div>
+                <span class="stat-value" id="risk-display">SAFE</span>
+                <span class="stat-label">Predictive Status</span>
+                <div id="explanation-text" class="explanation-box">System Active</div>
             </div>
 
             <!-- Controls -->
             <div class="control-group">
                 <label style="font-size:0.8rem; color:#aaa;">Scene Context</label>
                 <select id="context-select" onchange="setContext()">
-                    <option value="GENERAL">General</option>
-                    <option value="RAILWAY_STATION">Railway Station</option>
-                    <option value="PUBLIC_SQUARE">Public Square</option>
-                    <option value="BUS_STAND">Bus Stand</option>
+                    <option value="GENERAL">General Public</option>
+                    <option value="RAILWAY_STATION">Transport Hub</option>
+                    <option value="PUBLIC_SQUARE">High Density Event</option>
                 </select>
 
                 <!-- Camera Toggle -->
                 <div class="switch-container">
-                    <span style="font-size: 0.9em; color: #ddd;">Camera Feed</span>
+                    <span style="font-size: 0.9em; color: #ddd;">Source</span>
                     <label class="switch">
                         <input type="checkbox" id="cam-toggle-chk" onchange="toggleCamera(this)">
                         <span class="slider"></span>
                     </label>
                 </div>
                 <div style="font-size: 0.75em; color: #888; text-align: right; margin-top:2px;">
-                    Current: <span id="cam-label">Camera 0</span>
+                    Active: <span id="cam-label">Laptop Camera</span>
                 </div>
             </div>
 
@@ -345,48 +444,43 @@
             <div style="display: flex; gap: 10px;">
                 <div class="stat-card" style="flex: 1;">
                     <span class="stat-value" id="conf-score">100%</span>
-                    <span class="stat-label">Reliability</span>
+                    <span class="stat-label">Confidence</span>
                 </div>
                 <div class="stat-card" style="flex: 1;">
                     <span class="stat-value" id="threat-score">0.0</span>
-                    <span class="stat-label">Score</span>
+                    <span class="stat-label">Risk Index</span>
                 </div>
             </div>
 
-            <!-- Metrics Grid -->
-            <h2>Analysis</h2>
+            <!-- Metrics -->
+            <h2>Trends (30s)</h2>
             <div style="display: flex; gap: 5px;">
                 <div class="stat-card" style="flex: 1;">
                     <span class="stat-value" id="person-count">0</span>
-                    <span class="stat-label">Count</span>
-                </div>
-                <div class="stat-card" style="flex: 1;">
-                    <span class="stat-value" id="chaos-score">0.0</span>
-                    <span class="stat-label">Chaos</span>
+                    <span class="stat-label">Crowd Size</span>
                 </div>
                 <div class="stat-card" style="flex: 1;">
                     <span class="stat-value" id="speed-val">0.0</span>
-                    <span class="stat-label">Speed</span>
+                    <span class="stat-label">Avg Speed</span>
+                </div>
+                <div class="stat-card" style="flex: 1;">
+                    <span class="stat-value" id="flux-val">0.0</span>
+                    <span class="stat-label">Flux</span>
                 </div>
             </div>
 
-            <!-- Actions -->
+            <!-- Behaviors -->
             <h2>Behaviors</h2>
-            <div class="action-list" id="action-list">
-                <div class="action-item"><span class="action-count">0</span>Sit</div>
-                <div class="action-item"><span class="action-count">0</span>Stand</div>
-                <div class="action-item"><span class="action-count">0</span>Walk</div>
-                <div class="action-item"><span class="action-count">0</span>Run</div>
-            </div>
+            <div class="action-list" id="action-list"></div>
         </div>
     </div>
 
-    <!-- Bottom Section: Audio -->
+    <!-- Bottom: Audio -->
     <div class="bottom-panel">
         <div class="audio-info">
             <h2 style="margin:0; color:#fff; border:none; letter-spacing: 1px;">STUDIO AUDIO</h2>
             <div style="font-size:0.8rem; color:#aaa; margin-top:5px;">
-                Input: <span id="audio-source">System Mic</span>
+                State: <span id="audio-state-debug">Ready</span>
             </div>
             <div style="margin-top:10px;">
                 <span id="audio-status"
@@ -397,16 +491,15 @@
             </div>
         </div>
 
-        <!-- Viz -->
         <div class="audio-viz">
-            <div class="freq-bars" id="freq-bars-container">
-                <!-- Generated by JS -->
-            </div>
+            <div class="freq-bars" id="freq-bars-container"></div>
         </div>
     </div>
 
     <script>
-        // Init Studio Bars
+        /*******************************************************
+         *  SECTION 1: SYSTEM INIT
+         *******************************************************/
         const NUM_BANDS = 32;
         const barsContainer = document.getElementById('freq-bars-container');
         const barElements = [];
@@ -418,7 +511,6 @@
                 container.className = 'bar-container';
                 const fill = document.createElement('div');
                 fill.className = 'bar-fill';
-                fill.id = `band-${i}`;
                 container.appendChild(fill);
                 barsContainer.appendChild(container);
                 barElements.push(fill);
@@ -426,112 +518,245 @@
         }
         initBars();
 
+        // Entry Point
+        function initSystem() {
+            document.getElementById('startup-overlay').style.display = 'none';
+            initAudioEngine();
+        }
+
+        /*******************************************************
+         *  SECTION 2: ROBUST AUDIO ENGINE (Rebuilt)
+         *******************************************************/
+        let audioCtx = null;
+        let analyser = null;
+        let dataArray = null;
+        let isAudioActive = false;
+        let visualBands = new Array(NUM_BANDS).fill(0);
+        let currentDB = -100; // Start at silence
+        let smoothDB = -60;
+        let audioRiskScore = 0.0;
+
+        async function initAudioEngine() {
+            const debugEl = document.getElementById('audio-state-debug');
+
+            try {
+                debugEl.textContent = "Requesting Mic...";
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+
+                debugEl.textContent = "Creating Context...";
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+
+                // Hardware Source
+                const source = audioCtx.createMediaStreamSource(stream);
+                analyser = audioCtx.createAnalyser();
+
+                // Config
+                analyser.fftSize = 512; // Higher res
+                analyser.smoothingTimeConstant = 0.8;
+
+                source.connect(analyser);
+
+                const bufferLen = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLen);
+
+                debugEl.textContent = "Running";
+                isAudioActive = true;
+
+                console.log("[Audio] Engine Started. Context State:", audioCtx.state);
+
+                // Start Loops
+                loopAudioProcess();
+                loopBackendSync();
+
+            } catch (err) {
+                console.error("[Audio] Init Failed:", err);
+                debugEl.textContent = "Error: " + err.message;
+                alert("Microphone Access Required for Predictive Audio Analysis.");
+            }
+        }
+
+        // --- PROCESSING LOOP (Animation Frame) ---
+        function loopAudioProcess() {
+            if (!isAudioActive) return;
+            requestAnimationFrame(loopAudioProcess);
+
+            // 1. Check Context Health
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+                console.warn("[Audio] Resuming suspended context...");
+            }
+
+            // 2. Get Data
+            analyser.getByteFrequencyData(dataArray);
+
+            // 3. Calc RMS (Time Domain)
+            const timeData = new Float32Array(analyser.fftSize);
+            analyser.getFloatTimeDomainData(timeData);
+
+            let sum = 0.0;
+            for (let i = 0; i < timeData.length; i++) {
+                sum += timeData[i] * timeData[i];
+            }
+            const rms = Math.sqrt(sum / timeData.length);
+
+            // 4. Convert to dB (Safe Log)
+            let rawDb = -100;
+            if (rms > 0.0001) {
+                rawDb = 20 * Math.log10(rms);
+            }
+
+            // 5. Normalization & Smoothing
+            // Map: -60dB (Quiet) -> 0, -10dB (Loud) -> 100
+            // Clamp to 0-100
+            const minDb = -60;
+            const maxDb = -5;
+            let normDb = (rawDb - minDb) * (100 / (maxDb - minDb));
+            normDb = Math.max(0, Math.min(100, normDb));
+
+            // EMA Smooth
+            smoothDB += (normDb - smoothDB) * 0.1;
+
+            // 6. Update UI (Visualizer)
+            updateVisualizer();
+
+            // 7. Update UI (Text)
+            // Display estimated 'SPL' (30 + smoothDB * 0.7) for realism
+            let displaySPL = 30 + (smoothDB * 0.7);
+            document.getElementById('db-val').textContent = displaySPL.toFixed(0);
+
+            // 8. Risk Logic
+            if (displaySPL > 85) audioRiskScore = 1.0;
+            else if (displaySPL > 75) audioRiskScore = 0.6;
+            else audioRiskScore = 0.0;
+
+            const statusEl = document.getElementById('audio-status');
+            if (displaySPL > 90) {
+                statusEl.textContent = "SCREAM / LOUD"; statusEl.style.color = "#FF5252";
+            } else if (displaySPL > 75) {
+                statusEl.textContent = "High Noise"; statusEl.style.color = "#FFAB40";
+            } else {
+                statusEl.textContent = "Calm"; statusEl.style.color = "#aaa";
+            }
+        }
+
+        function updateVisualizer() {
+            // Map 256 bins -> 32 bars
+            const step = Math.floor(dataArray.length / NUM_BANDS);
+
+            for (let i = 0; i < NUM_BANDS; i++) {
+                let sum = 0;
+                for (let j = 0; j < step; j++) {
+                    sum += dataArray[i * step + j];
+                }
+                let avg = sum / step;
+
+                // Boost High Frequencies for visual balance
+                let boost = 1 + (i / NUM_BANDS);
+                let pct = (avg / 255) * 100 * boost;
+
+                if (barElements[i]) {
+                    barElements[i].style.height = Math.min(100, pct) + "%";
+                }
+                visualBands[i] = pct;
+            }
+        }
+
+        // --- BACKEND SYNC LOOP (2Hz) ---
+        function loopBackendSync() {
+            setInterval(() => {
+                if (!isAudioActive) return;
+
+                const payload = {
+                    db_level: 30 + (smoothDB * 0.7),
+                    risk_score: audioRiskScore,
+                    bands: visualBands,
+                    status: (audioRiskScore > 0.5) ? "HIGH_NOISE" : "NORMAL",
+                    variance: 0
+                };
+
+                fetch('/api/update_audio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).catch(e => console.log("Sync skipped")); // Silent fail ok
+
+            }, 500);
+        }
+
+        /*******************************************************
+         *  SECTION 3: SYSTEM CONTROLS
+         *******************************************************/
         function setContext() {
             const val = document.getElementById('context-select').value;
             fetch(`/api/set_context/${val}`);
         }
 
-        // Toggle Logic
-        let currentCam = 0;
         function toggleCamera(checkbox) {
-            currentCam = checkbox.checked ? 1 : 0;
-            document.getElementById('cam-label').innerText = `Camera ${currentCam}`;
+            const camId = checkbox.checked ? 1 : 0;
+            const labels = ["Laptop Camera", "External Camera"];
+            document.getElementById('cam-label').innerText = labels[camId] || "Unknown Source";
 
-            fetch(`/api/switch_camera/${currentCam}`)
-                .then(res => res.json())
-                .catch(err => console.error("Switch error", err));
+            fetch(`/api/switch_camera/${camId}`).catch(console.error);
         }
 
+        // --- STATS UPDATE LOOP (UI STATE) ---
         function updateStats() {
             fetch('/api/stats')
                 .then(res => res.json())
                 .then(data => {
-                    // Safety check for critical data
                     if (!data) return;
 
-                    // Threat
+                    // 1. RISK & EXPLANATION
                     const riskEl = document.getElementById('risk-display');
+                    const overlayState = document.getElementById('overlay-state');
+                    const overlayBox = document.getElementById('predictive-overlay');
+
                     if (riskEl) {
-                        riskEl.textContent = data.risk || "LOW";
-                        riskEl.className = 'stat-value ' + (
-                            data.risk === 'CRITICAL' ? 'risk-high' :
-                                data.risk === 'HIGH' ? 'risk-high' :
-                                    data.risk === 'MEDIUM' ? 'risk-medium' : 'risk-low'
-                        );
-                    }
+                        const risk = data.risk || "SAFE";
+                        riskEl.textContent = risk;
 
-                    if (document.getElementById('explanation-text'))
-                        document.getElementById('explanation-text').textContent = data.explanation || "";
+                        let cssClass = 'risk-safe';
+                        let colorCode = '#4CAF50';
+                        let overlayText = "NORMAL MONITORING";
 
-                    // Audio Viz
-                    const audio = data.audio || {};
-                    document.getElementById('db-val').textContent = Math.round(audio.db_level || 0);
-                    document.getElementById('audio-status').textContent = audio.status || "Calm";
-                    document.getElementById('audio-source').textContent = audio.source || "System Mic";
-
-                    // Update Frequency Bars
-                    if (audio.bands && Array.isArray(audio.bands)) {
-                        for (let i = 0; i < NUM_BANDS; i++) {
-                            // Map incoming bands to UI. 
-                            // If backend sends fewer bands, we spread/repeat. If more, we slice.
-                            // We updated backend to 32 bands, so it should match.
-                            const val = audio.bands[i] || 5;
-
-                            if (barElements[i]) {
-                                barElements[i].style.height = val + "%";
-
-                                // Color logic: Gradients handled by CSS, but can override for peaks
-                                if (val > 85) {
-                                    barElements[i].style.background = "#FF5252"; // Red Peak
-                                    barElements[i].style.boxShadow = "0 0 10px #FF5252";
-                                } else {
-                                    // Reset to gradient
-                                    barElements[i].style.background = "linear-gradient(to top, #2196F3, #00BCD4)";
-                                    barElements[i].style.boxShadow = "none";
-                                }
-                            }
+                        if (risk === 'THREAT' || risk === 'CRITICAL') {
+                            cssClass = 'risk-threat'; colorCode = '#F44336'; overlayText = "THREAT DETECTED";
+                        } else if (risk === 'WARNING') {
+                            cssClass = 'risk-warning'; colorCode = '#FF9800'; overlayText = "EARLY WARNING";
                         }
+                        riskEl.className = 'stat-value ' + cssClass;
+
+                        if (overlayState) overlayState.innerText = overlayText;
+                        if (overlayBox) overlayBox.style.borderLeftColor = colorCode;
                     }
 
-                    // Status Color Update
-                    const statusEl = document.getElementById('audio-status');
-                    if (audio.anomaly) {
-                        statusEl.style.background = "#D32F2F";
-                        statusEl.style.color = "white";
-                    } else {
-                        statusEl.style.background = "#333";
-                        statusEl.style.color = "#aaa";
-                    }
+                    document.getElementById('explanation-text').textContent = data.explanation || "System Active";
 
-                    // Stats
+                    // 2. METRICS
                     document.getElementById('conf-score').textContent = Math.round(data.data_reliability || 0) + "%";
                     document.getElementById('threat-score').textContent = (data.threat_score || 0).toFixed(2);
                     document.getElementById('person-count').textContent = data.count || 0;
-                    document.getElementById('chaos-score').textContent = (data.chaos || 0).toFixed(2);
                     document.getElementById('speed-val').textContent = (data.speed || 0).toFixed(1);
                     document.getElementById('fps-val').textContent = data.fps || 0;
 
-                    // Actions
-                    const actions = data.action_counts || {};
-                    const sit = actions['Sitting'] || 0;
-                    const stand = actions['Standing'] || 0;
-                    const walk = actions['Walking'] || 0;
-                    const run = actions['Running'] || 0;
+                    // Flux
+                    const flux = data.chaos || 0;
+                    if (document.getElementById('flux-val')) document.getElementById('flux-val').textContent = flux.toFixed(1);
 
+                    // 3. ACTION LIST
+                    const actions = data.action_counts || {};
                     const html = `
-                    <div class="action-item" style="border-bottom: 2px solid #4CAF50"><span class="action-count">${sit}</span>Sit</div>
-                    <div class="action-item"><span class="action-count">${stand}</span>Stand</div>
-                    <div class="action-item"><span class="action-count">${walk}</span>Walk</div>
-                    <div class="action-item" style="border-bottom: 2px solid #F44336"><span class="action-count">${run}</span>Run</div>
-                `;
+                        <div class="action-item" style="border-bottom: 2px solid #4CAF50"><span class="action-count">${actions['Sitting'] || 0}</span>Sit</div>
+                        <div class="action-item"><span class="action-count">${actions['Standing'] || 0}</span>Stand</div>
+                        <div class="action-item"><span class="action-count">${actions['Walking'] || 0}</span>Walk</div>
+                        <div class="action-item" style="border-bottom: 2px solid #F44336"><span class="action-count">${actions['Running'] || 0}</span>Run</div>
+                    `;
                     document.getElementById('action-list').innerHTML = html;
                 })
-                .catch(err => {
-                    // console.error("Error fetching stats:", err) // Suppress logs to avoid console spam
-                });
+                .catch(err => { });
         }
-
-        setInterval(updateStats, 100); // 10fps for smooth audio
+        setInterval(updateStats, 200); // 5Hz UI Update
     </script>
 </body>
 
