@@ -103,11 +103,19 @@ class PersonDetector:
             x2 = min(w, int(max_x + pad_x))
             y2 = min(h, int(max_y + pad_y))
             
-            # Blur
+            # Blur (Pixelation for speed)
             roi = frame[y1:y2, x1:x2]
             if roi.size > 0:
-                roi = cv2.GaussianBlur(roi, (25, 25), 30)
-                frame[y1:y2, x1:x2] = roi
+                # Pixelate: Downscale by 10x then upscale
+                try:
+                    h_roi, w_roi = roi.shape[:2]
+                    # Ensure minimum size for downscaling
+                    if h_roi > 10 and w_roi > 10:
+                        small = cv2.resize(roi, (w_roi // 10, h_roi // 10), interpolation=cv2.INTER_LINEAR)
+                        pixelated = cv2.resize(small, (w_roi, h_roi), interpolation=cv2.INTER_NEAREST)
+                        frame[y1:y2, x1:x2] = pixelated
+                except Exception:
+                    pass # Fail silently and leave unblurred if resize fails to avoid crash
                 
         return frame
 

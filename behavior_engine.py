@@ -100,6 +100,21 @@ class BehaviorAnalyzer:
                     pts = list(history)[-5:]
                     dx = pts[-1][0] - pts[0][0]
                     dy = pts[-1][1] - pts[0][1]
+                    raw_speed = np.sqrt(dx*dx + dy*dy)
+                    
+                    # Perspective Correction (Phase 6 Fix)
+                    # y=0(top) -> factor=Max, y=480(bottom) -> factor=1.0
+                    y_pos = pts[-1][1]
+                    norm_y = max(0, min(1, y_pos / 480.0)) # 0.0 top, 1.0 bottom
+                    # If at bottom(1.0), mult=1. If at top(0.0), mult = 1 + PERSPECTIVE
+                    correction_mult = 1.0 + ((1.0 - norm_y) * config.PERSPECTIVE_FACTOR)
+                    
+                    corrected_speed = raw_speed * correction_mult
+                    
+                    # Update metrics with corrected speed
+                    active_speeds.append(corrected_speed)
+                    
+                    # Recalculate chaos angle
                     angles.append(np.arctan2(dy, dx))
         
         # Metrics

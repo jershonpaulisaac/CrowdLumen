@@ -44,6 +44,12 @@ class CrowdAnalyzer:
             (speed_score * w_speed)
         )
         
+        # AUDIT FIX: Massive Crowd Saturation
+        # If count exceeds saturation point, density is critical regardless of movement
+        if count >= config.MASSIVE_COUNT_THRESHOLD:
+            # Force CRITICAL risk (0.9) if massive crowd, even if standing still
+            visual_threat = max(visual_threat, 0.9)
+        
         # 2. Audio Fusion Logic
         # Audio acts as a "Confidence Booster" or "Validator"
         final_threat = visual_threat
@@ -68,8 +74,9 @@ class CrowdAnalyzer:
             # RULE 4: Audio alone CANNOT trigger Critical (as requested)
             if visual_threat < config.THREAT_SCORES['MEDIUM'] and audio_risk > 0.8:
                 # High sound but no visual crowd chaos -> Maybe firework/train
-                # Cap at MEDIUM risk
-                final_threat = min(final_threat, config.THREAT_SCORES['MEDIUM'] - 0.01)
+                # Ensure it hits MEDIUM (0.5), to warn operator, but not CRITICAL
+                final_threat = max(final_threat, config.THREAT_SCORES['MEDIUM'])
+                final_threat = min(final_threat, config.THREAT_SCORES['HIGH'] - 0.01)
 
         # 3. Level Determination
         if final_threat >= config.THREAT_SCORES['CRITICAL']:

@@ -120,38 +120,46 @@ class AudioMonitor:
         self.db_history.append(self.current_db)
         
         # 3. FFT (Frequency Analysis)
-        # Apply windowing to reduce leakage
         windowed = audio_data * np.hanning(len(audio_data))
         fft_vals = np.abs(np.fft.rfft(windowed))
         freqs = np.fft.rfftfreq(len(windowed), 1.0/self.RATE)
         
-        # Binning into 5 bands
-        # 0-60Hz (Sub), 60-250Hz (Bass), 250-500Hz (LowMid), 500-2kHz (Mid), 2k-4kHz (HighMid), 4k+ (Treble)
-        # Let's do 5 simple bands for UI:
-        # Band 1: < 150 Hz (Bass)
-        # Band 2: 150 - 500 Hz (Low Mid)
-        # Band 3: 500 - 2000 Hz (Mid)
-        # Band 4: 2000 - 6000 Hz (Presence)
-        # Band 5: > 6000 Hz (Brilliance)
+        # Studio Style: 32 Bands
+        # Logarithmic binning from 20Hz to 20kHz
+        # We can just do linear interpolation or simple block averaging for now for speed
         
-        bands = [0, 0, 0, 0, 0]
-        try:
-            bands[0] = np.mean(fft_vals[(freqs < 150)])
-            bands[1] = np.mean(fft_vals[(freqs >= 150) & (freqs < 500)])
-            bands[2] = np.mean(fft_vals[(freqs >= 500) & (freqs < 2000)])
-            bands[3] = np.mean(fft_vals[(freqs >= 2000) & (freqs < 6000)])
-            bands[4] = np.mean(fft_vals[(freqs >= 6000)])
-        except:
-            pass # Handle empty slices
-            
-        # Normalize bands for 0-100 Visualization
-        # These values will vary wildly. Log scale is better.
         self.bands = []
-        for b in bands:
-            # Heuristic log scaling
-            if b > 1: val = min(100, 10 * np.log10(b))
-            else: val = 0
-            self.bands.append(max(0, val))
+        num_bands = 32
+        
+        # Split FFT into 32 chunks (linear/log hybrid)
+        # For simplicity in this lightweight engine, we use linear grouping of FFT bins
+        # But low freqs need fewer bins, high freqs need more.
+        
+        # Simple approach: Resample FFT array to length 32
+        # Or just average blocks.
+        
+        chunk_size = len(fft_vals) // num_bands
+        for i in range(num_bands):
+             start = i * chunk_size
+             end = (i + 1) * chunk_size
+             if start >= len(fft_vals): break
+             
+             segment = fft_vals[start:end]
+             if len(segment) == 0: 
+                 val = 0
+             else:
+                 val = np.mean(segment)
+             
+             # Log scale for dB view
+             if val > 1:
+                 db_val = 10 * np.log10(val)
+             else: 
+                 db_val = 0
+                 
+             # Normalize 0-100 roughly
+             # Typically values might be 0-100dB
+             norm_val = min(100, max(0, db_val * 2)) # scaling factor
+             self.bands.append(norm_val)
 
     def _process_simulation(self):
         # Fake bands for simulation

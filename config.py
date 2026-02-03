@@ -1,51 +1,55 @@
-import os
 
-# System Configuration
+# Auto-generated Config
 CAMERA_INDEX = 0
-FRAME_WIDTH = 640
-FRAME_HEIGHT = 480
-FPS = 30
-PRIVACY_BLUR = True # Blur faces
 
-# Detection Configuration
-YOLO_MODEL_NAME = 'yolov8n-pose.pt'
-CONFIDENCE_THRESHOLD = 0.4
+
+# Camera Settings
+FRAME_WIDTH = 640
+FRAME_HEIGHT = 640
+FRAME_SKIP_INTERVAL = 3 # Only run AI every Nth frame (1 = every frame, 3 = every 3rd frame)
+
+# Detection
+YOLO_MODEL_NAME = "yolov8n-pose.pt" # Pose model for behavior
+CONFIDENCE_THRESHOLD = 0.3
 CLASS_ID_PERSON = 0
 
-# Analytics Area
-MONITORED_AREA_SQ_METERS = 20.0 
 
-# Thresholds (Baseline - overrides by Context)
-RISK_THRESHOLDS = {
-    'MEDIUM': 5,
-    'HIGH': 10
-}
 
-# Behavior Configuration
-HISTORY_LENGTH = 30
-CHAOS_THRESHOLD = 1.5
+# Perspective & Scale (New in Phase 6)
+PERSPECTIVE_FACTOR = 2.5 # Objects at top move 2.5x "faster" logically to compensate for depth
+MASSIVE_COUNT_THRESHOLD = 50 # If count > 50, assume density saturation
 
-# Action Recognition Thresholds (Pixels/Frame)
-# Note: These need tuning based on resolution/fps
-SPEED_STAND = 1.0  # < 1.0 is Stationary/Standing
-SPEED_WALK_MAX = 5.0 # 1.0 to 5.0 is Walking
-# > 5.0 is Running (Subject to Context)
+# Analytics
+MONITORED_AREA_SQ_METERS = 20.0
+HISTORY_LENGTH = 30 # Frames for track history
 
-# Weights
-WEIGHT_DENSITY = 0.1
-WEIGHT_CHAOS = 0.5
-WEIGHT_SPEED = 0.4
+# Behavior
+SPEED_WALK_MAX = 5.0 # Pixels per frame (Uncorrected)
+SPEED_RUN_MIN = 12.0
+SPEED_STAND = 1.5
+CHAOS_THRESHOLD = 1.5 # Entropy level
 
-# Threat Scores
+# Risk Weights (Must sum to ~1.0)
+WEIGHT_DENSITY = 0.4
+WEIGHT_CHAOS = 0.3
+WEIGHT_SPEED = 0.3
+
+# Thresholds for Threat Score (0-1.2)
 THREAT_SCORES = {
-    'MEDIUM': 0.4,
-    'HIGH': 0.6,
-    'CRITICAL': 0.8
+    "LOW": 0.3,
+    "MEDIUM": 0.5,
+    "HIGH": 0.7,
+    "CRITICAL": 0.85
 }
 
-# Hardware
-RED_LED_PIN = 17
-YELLOW_LED_PIN = 27
-GREEN_LED_PIN = 22
-BUZZER_PIN = 18
-SIMULATE_HARDWARE = False
+# Crowd Count Thresholds
+RISK_THRESHOLDS = {
+    "LOW": 5,
+    "MEDIUM": 15,
+    "HIGH": 30
+}
+
+# Privacy
+PRIVACY_BLUR = True
+
+
