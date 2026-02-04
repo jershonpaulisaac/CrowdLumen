@@ -1,0 +1,9 @@
+streamlit
+pyaudio
+sounddevice
+numpy
+scipy
+librosa
+matplotlib
+plotly
+pandas

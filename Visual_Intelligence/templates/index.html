@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrowdLumen | Visual Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>CrowdLumen</h1>
+                <h2>Visual Intelligence</h2>
+            </div>
+            
+            <div class="control-panel">
+                <label>Video Source</label>
+                <div class="btn-group">
+                    <button class="cam-btn active" onclick="switchCamera(0)">Cam 0</button>
+                    <button class="cam-btn" onclick="switchCamera(1)">Cam 1</button>
+                </div>
+            </div>
+
+            <div class="threat-panel">
+                <h3>THREAT LEVEL</h3>
+                <div id="threat-indicator" class="threat-indicator NORMAL">
+                    NORMAL
+                </div>
+            </div>
+
+            <div class="reason-panel">
+                <label>System Reasoning</label>
+                <div class="reason-box">
+                    <p id="reason-text">Initializing analytics engine...</p>
+                </div>
+            </div>
+
+            <div class="metrics-panel">
+                <div class="metric">
+                    <label>Person Count</label>
+                    <span id="person-count" class="value">0</span>
+                </div>
+                <div class="metric">
+                    <label>Chaos Metric</label>
+                    <div class="progress-bar">
+                        <div id="chaos-bar" class="fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>v2.0.0 Web Edition</p>
+                <div class="status-dot"></div> Online
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="video-container">
+                <img src="{{ url_for('video_feed') }}" alt="Live Feed" id="video-feed">
+                <div class="overlay-ui">
+                    <span class="badgew live">LIVE</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
