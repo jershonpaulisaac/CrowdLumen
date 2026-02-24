@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Evacuation Protocol | CrowdLumen</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --evac-red: #ff3b30;
+            --evac-green: #34c759;
+            --panel-bg: #151518;
+            --header-bg: rgba(255, 59, 48, 0.1);
+        }
+
+        body {
+            background: #0a0a0b;
+            color: #fff;
+            padding: 24px;
+            height: 100vh;
+            display: grid;
+            grid-template-rows: auto auto 1fr;
+            gap: 24px;
+            overflow: hidden;
+        }
+
+        /* HEADER */
+        .evac-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 32px;
+            background: var(--header-bg);
+            border: 1px solid rgba(255, 59, 48, 0.2);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-left h1 {
+            color: var(--evac-red);
+            font-size: 1.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0;
+        }
+
+        #clock {
+            font-family: monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        /* VENUE GRID */
+        .venue-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .venue-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: border-color 0.3s;
+        }
+
+        .venue-card.danger {
+            border-color: rgba(255, 59, 48, 0.5);
+            background: rgba(255, 59, 48, 0.05);
+        }
+
+        .v-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .v-count {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #fff;
+        }
+
+        /* MAIN DASH */
+        .evac-main {
+            display: grid;
+            grid-template-columns: 380px 1fr 1fr;
+            gap: 24px;
+            min-height: 0;
+        }
+
+        .status-center {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            padding: 32px;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .total-missing {
+            font-size: 8rem;
+            font-weight: 900;
+            color: var(--evac-red);
+            line-height: 1;
+            margin-bottom: 10px;
+            letter-spacing: -4px;
+        }
+
+        .total-label {
+            font-weight: 800;
+            font-size: 1rem;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            margin-bottom: 30px;
+        }
+
+        .action-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .evac-btn {
+            padding: 18px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 800;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .btn-trigger {
+            background: var(--evac-red);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(255, 59, 48, 0.3);
+        }
+
+        .btn-trigger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(255, 59, 48, 0.4);
+        }
+
+        .btn-stop {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-stop:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* LISTS */
+        .list-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .list-header {
+            padding: 16px 20px;
+            font-weight: 900;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-missing {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--evac-red);
+        }
+
+        .header-safe {
+            background: rgba(52, 199, 89, 0.1);
+            color: var(--evac-green);
+        }
+
+        .badge-count {
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            font-size: 0.7rem;
+        }
+
+        .person-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .person-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .p-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .p-name {
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .p-uid {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+
+        .p-venue {
+            font-size: 0.7rem;
+            color: var(--evac-red);
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* ALARM ANIMATION */
+        @keyframes strobe {
+            0% {
+                border-color: var(--evac-red);
+                box-shadow: 0 0 20px rgba(255, 59, 48, 0.3);
+            }
+
+            50% {
+                border-color: #fff;
+                box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+            }
+
+            100% {
+                border-color: var(--evac-red);
+                box-shadow: 0 0 20px rgba(255, 59, 48, 0.3);
+            }
+        }
+
+        .active-alarm {
+            animation: strobe 1s infinite cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="evac-header" id="header-box">
+        <div class="header-left">
+            <h1>Emergency Protocol <span>Security & Safety</span></h1>
+        </div>
+        <div id="clock">00:00:00</div>
+    </header>
+
+    <div class="venue-grid" id="venue-grid">
+        <!-- Dyn -->
+    </div>
+
+    <main class="evac-main">
+        <!-- Status Center -->
+        <div class="status-center" id="main-status-box">
+            <div id="missing-val" class="total-missing">0</div>
+            <div class="total-label">PERSONNEL REMAINING INSIDE</div>
+
+            <div class="action-btns">
+                <button id="btn-trigger" class="evac-btn btn-trigger" onclick="triggerEvac()">Commence Evacuation
+                    Buzzer</button>
+                <button id="btn-stop" class="evac-btn btn-stop" style="display: none;" onclick="stopEvac()">Secure Area
+                    / Silence Buzzer</button>
+                <button class="evac-btn btn-stop" onclick="window.location.href='/'">Return to Command
+                    Dashboard</button>
+            </div>
+        </div>
+
+        <!-- Missing List -->
+        <div class="list-panel">
+            <div class="list-header header-missing">
+                <span>Missing (In Danger Zone)</span>
+                <span class="badge-count" id="count-missing-badge">0</span>
+            </div>
+            <div class="person-list" id="list-missing">
+                <!-- Dyn -->
+            </div>
+        </div>
+
+        <!-- Safe List -->
+        <div class="list-panel">
+            <div class="list-header header-safe">
+                <span>Verified Safe (Muster Point)</span>
+                <span class="badge-count" id="count-safe-badge">0</span>
+            </div>
+            <div class="person-list" id="list-safe">
+                <!-- Dyn -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Clock
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', { hour12: false });
+        }, 1000);
+
+        async function triggerEvac() {
+            await fetch('/api/evac_trigger', { method: 'POST' });
+            syncAlarmState(true);
+        }
+
+        async function stopEvac() {
+            await fetch('/api/evac_stop', { method: 'POST' });
+            syncAlarmState(false);
+        }
+
+        function syncAlarmState(active) {
+            const h = document.getElementById('header-box');
+            const bTrigger = document.getElementById('btn-trigger');
+            const bStop = document.getElementById('btn-stop');
+            const mainBox = document.getElementById('main-status-box');
+
+            if (active) {
+                h.classList.add('active-alarm');
+                mainBox.classList.add('active-alarm');
+                bTrigger.style.display = 'none';
+                bStop.style.display = 'block';
+            } else {
+                h.classList.remove('active-alarm');
+                mainBox.classList.remove('active-alarm');
+                bTrigger.style.display = 'block';
+                bStop.style.display = 'none';
+            }
+        }
+
+        async function refreshEvac() {
+            try {
+                // 1. Alarm Sync
+                const sUrl = '/api/evac_status';
+                const sRes = await fetch(sUrl);
+                const sData = await sRes.json();
+                syncAlarmState(sData.active);
+
+                // 2. Data Sync
+                const res = await fetch('/api/evacuation/full_summary');
+                const data = await res.json();
+
+                // Update Big Counter
+                document.getElementById('missing-val').innerText = data.total_inside;
+                document.getElementById('count-missing-badge').innerText = data.total_inside;
+                document.getElementById('count-safe-badge').innerText = data.total_safe;
+
+                // Update Venue Grid
+                const vGrid = document.getElementById('venue-grid');
+                vGrid.innerHTML = data.venues.map(v => `
+                    <div class="venue-card ${v.count > 0 ? 'danger' : ''}">
+                        <div class="v-title">${v.name}</div>
+                        <div class="v-count">${v.count}</div>
+                    </div>
+                `).join('');
+
+                // Update Missing List
+                const mList = document.getElementById('list-missing');
+                if (data.inside_list.length === 0) {
+                    mList.innerHTML = '<div style="text-align:center; padding:40px; color:#444; font-size:0.8rem;">SITE CLEARED</div>';
+                } else {
+                    mList.innerHTML = data.inside_list.map(p => `
+                        <div class="person-row">
+                            <div class="p-info">
+                                <span class="p-name">${p.name}</span>
+                                <span class="p-uid">${p.uid}</span>
+                                <span class="p-venue">📍 ${p.venue}</span>
+                            </div>
+                            <div style="font-size: 1.2rem;">⚠️</div>
+                        </div>
+                    `).join('');
+                }
+
+                // Update Safe List
+                const sList = document.getElementById('list-safe');
+                sList.innerHTML = data.safe_list.map(p => `
+                    <div class="person-row">
+                        <div class="p-info">
+                            <span class="p-name">${p.name}</span>
+                            <span class="p-uid">${p.uid}</span>
+                        </div>
+                        <div style="color: var(--evac-green); font-size: 1rem;">🛡️</div>
+                    </div>
+                `).join('') || '<div style="text-align:center; padding:40px; color:#444; font-size:0.8rem;">NO PERSONNEL DETECTED</div>';
+
+            } catch (e) {
+                console.error("Connectivity issue", e);
+            }
+        }
+
+        setInterval(refreshEvac, 1500);
+        refreshEvac();
+    </script>
+</body>
+
+</html>

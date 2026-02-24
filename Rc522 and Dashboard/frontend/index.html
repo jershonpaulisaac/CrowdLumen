@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrowdLumen MVMS | AI Safety Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <!-- HEADER -->
+        <header>
+            <div class="brand">
+                <h1>CROWDLUMEN <span> Safety & Security </span></h1>
+            </div>
+            <div class="nav-links">
+                <a href="#" class="nav-link">DASHBOARD</a>
+                <a href="evacuation.html" class="nav-link emergency">EVACUATION PROTOCOL</a>
+                <button class="btn-icon" onclick="toggleDrawer()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="4" y1="21" x2="4" y2="14"></line>
+                        <line x1="4" y1="10" x2="4" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12" y2="3"></line>
+                        <line x1="20" y1="21" x2="20" y2="16"></line>
+                        <line x1="20" y1="12" x2="20" y2="3"></line>
+                        <line x1="1" y1="14" x2="7" y2="14"></line>
+                        <line x1="9" y1="8" x2="15" y2="8"></line>
+                        <line x1="17" y1="16" x2="23" y2="16"></line>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN GRID -->
+        <main class="dashboard-grid">
+
+            <!-- LEFT: VENUE PICKER -->
+            <aside class="card">
+                <h2>VENUE SELECTION</h2>
+                <div class="venue-list" id="venue-list">
+                    <div class="empty-state">Syncing venues...</div>
+                </div>
+            </aside>
+
+            <!-- CENTER: MAIN STAGE -->
+            <section class="main-stage">
+
+                <!-- TOP: OCCUPANCY HERO -->
+                <div class="card" id="occupancy-card">
+                    <div id="over-capacity-banner"
+                        style="display: none; background: var(--accent-red); color: white; padding: 10px; text-align: center; font-weight: 800; border-radius: var(--radius-sm) var(--radius-sm) 0 0; margin: -24px -24px 20px -24px;">
+                        ⚠️ OVER CAPACITY DETECTED
+                        <button onclick="silenceOverCapacity()"
+                            style="margin-left: 15px; background: rgba(0,0,0,0.2); border: 1px solid white; color: white; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem;">SILENCE
+                            ALERT</button>
+                    </div>
+                    <div class="occupancy-hero">
+                        <div class="gauge-container">
+                            <canvas id="gaugeChart"></canvas>
+                            <div class="gauge-val">
+                                <div class="count" id="count-val">0</div>
+                                <div class="label">INSIDE</div>
+                            </div>
+                        </div>
+                        <div class="hero-text">
+                            <h3 id="current-name">---</h3>
+                            <div class="capacity-badge" id="cap-badge">SAFE CAPACITY</div>
+                            <div class="limit-sub" style="margin-top: 10px;">LIMIT: <span id="limit-val">0</span>
+                                PERSONS</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTTOM: TREND -->
+                <div class="card">
+                    <h2>OCCUPANCY TREND</h2>
+                    <div class="chart-wrap">
+                        <canvas id="flowChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT: ACTIVITY & PEOPLE -->
+            <section class="card">
+                <div class="side-tabs">
+                    <button class="tab-btn active" onclick="switchSideTab('logs')">ACTIVITY</button>
+                    <button class="tab-btn" onclick="switchSideTab('occupants')">PEOPLE</button>
+                </div>
+
+                <div class="stream-content" id="stream-content">
+                    <!-- Dynamic -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- SIDE DRAWER -->
+    <div class="drawer-overlay" id="drawer-overlay" onclick="toggleDrawer()"></div>
+    <div class="side-drawer" id="side-drawer">
+        <div class="drawer-header">
+            <h3>Venue Intelligence</h3>
+            <button class="btn-icon" onclick="toggleDrawer()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+
+        <div class="section-label">Identity & Thresholds</div>
+        <div class="form-group">
+            <label>VENUE IDENTIFIER</label>
+            <input type="text" id="edit-name">
+        </div>
+        <div class="form-group">
+            <label>PERSONNEL LIMIT</label>
+            <input type="number" id="edit-limit">
+        </div>
+
+        <div class="section-label">Maintenance Zone</div>
+        <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 20px;">Use the reset button to clear local
+            occupancy data in case of sensor errors.</p>
+
+        <div class="drawer-actions">
+            <button class="btn-primary" onclick="saveVenue()">UPDATE SETTINGS</button>
+            <button class="btn-danger" onclick="confirmReset()">RESET OCCUPANCY</button>
+            <button class="btn-secondary" onclick="toggleDrawer()">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- TOASTS -->
+    <div class="toast-container" id="toast-bot"></div>
+
+    <script>
+        let currentId = 1;
+        let sideTab = 'logs';
+        let trendChart = null;
+        let gaugeChart = null;
+        let lastLogTime = null;
+
+        function initCharts() {
+            const tCtx = document.getElementById('flowChart').getContext('2d');
+            trendChart = new Chart(tCtx, {
+                type: 'line',
+                data: {
+                    labels: Array(20).fill(''),
+                    datasets: [{
+                        label: 'In Venue',
+                        data: Array(20).fill(0),
+                        borderColor: '#007aff',
+                        backgroundColor: 'rgba(0, 122, 255, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: false },
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#8e8e93', font: { family: 'Inter' } }
+                        }
+                    }
+                }
+            });
+
+            const gCtx = document.getElementById('gaugeChart').getContext('2d');
+            gaugeChart = new Chart(gCtx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [0, 100],
+                        backgroundColor: ['#34c759', '#1c1c1e'],
+                        borderWidth: 0,
+                        circumference: 270,
+                        rotation: 225,
+                        cutout: '85%',
+                        borderRadius: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { tooltip: false, legend: false }
+                }
+            });
+        }
+
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+
+                const vList = document.getElementById('venue-list');
+                vList.innerHTML = data.venues.map(v => `
+                    <div class="venue-item ${v.id === data.current_id ? 'active' : ''}" onclick="switchVenue(${v.id})">
+                        <div class="v-name">${v.name.toUpperCase()}</div>
+                        <div class="v-stats">${v.count} / ${v.limit} Present</div>
+                    </div>
+                `).join('');
+
+                document.getElementById('current-name').innerText = data.current_name;
+                document.getElementById('count-val').innerText = data.current_count;
+                document.getElementById('limit-val').innerText = data.current_limit;
+
+                const pct = Math.min((data.current_count / data.current_limit) * 100, 100);
+                const badge = document.getElementById('cap-badge');
+                const banner = document.getElementById('over-capacity-banner');
+                const occCard = document.getElementById('occupancy-card');
+
+                if (data.current_count > data.current_limit) {
+                    banner.style.display = 'block';
+                    occCard.style.borderColor = 'var(--accent-red)';
+                } else {
+                    banner.style.display = 'none';
+                    occCard.style.borderColor = 'var(--border-color)';
+                }
+
+                let color = '#34c759';
+                if (data.current_count > data.current_limit || pct >= 90) {
+                    color = '#ff3b30';
+                    badge.innerText = data.current_count > data.current_limit ? 'OVER CAPACITY' : 'CRITICAL CAPACITY';
+                    badge.className = 'capacity-badge critical';
+                } else if (pct >= 70) {
+                    color = '#ff9500';
+                    badge.innerText = 'HIGH OCCUPANCY';
+                    badge.className = 'capacity-badge warning';
+                } else {
+                    badge.innerText = 'SAFE CAPACITY';
+                    badge.className = 'capacity-badge';
+                }
+
+                gaugeChart.data.datasets[0].data = [pct, 100 - pct];
+                gaugeChart.data.datasets[0].backgroundColor[0] = color;
+                gaugeChart.update();
+
+                const cData = trendChart.data.datasets[0].data;
+                cData.shift();
+                cData.push(data.current_count);
+                trendChart.update();
+
+                renderSideContent(data);
+
+                if (data.logs && data.logs.length > 0) {
+                    const latest = data.logs[0];
+                    const logKey = `${latest.uid}-${latest.time}`;
+                    if (lastLogTime && lastLogTime !== logKey) {
+                        showToast(latest);
+                    }
+                    lastLogTime = logKey;
+                }
+
+                currentId = data.current_id;
+            } catch (e) { console.error("Sync Error:", e); }
+        }
+
+        function renderSideContent(data) {
+            const container = document.getElementById('stream-content');
+            if (sideTab === 'logs') {
+                if (!data.logs || data.logs.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No recent activity</div>';
+                    return;
+                }
+                container.innerHTML = data.logs.map(log => `
+                    <div class="log-item ${log.type}">
+                        <div class="log-icon" style="font-size: 0.8rem; font-weight: 800;">${log.type === 'entry' ? 'IN' : 'OUT'}</div>
+                        <div class="log-info">
+                            <div class="log-header">
+                                <span class="log-name">${log.name}</span>
+                                <span class="log-time">${log.time}</span>
+                            </div>
+                            <div class="log-msg">${log.venue}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                if (data.occupants.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Venue is empty</div>';
+                    return;
+                }
+                container.innerHTML = data.occupants.map(u => `
+                    <div class="log-item">
+                        <div class="log-icon" style="background: #333; font-size: 0.7rem; font-weight: 800;">UID</div>
+                        <div class="log-info">
+                            <div class="log-name">${u.name}</div>
+                            <div class="log-msg" style="font-family: monospace;">${u.uid}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function switchSideTab(tab) {
+            sideTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.toggle('active', b.innerText.toLowerCase().includes(tab));
+            });
+            fetchStatus();
+        }
+
+        async function switchVenue(id) {
+            await fetch('/api/set_venue', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            });
+            fetchStatus();
+        }
+
+        function showToast(log) {
+            const container = document.getElementById('toast-bot');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `
+                <div style="font-size: 0.75rem; color: #888; font-weight: 800; margin-right: 12px;">${log.type.toUpperCase()}</div>
+                <div>
+                    <div style="font-size: 0.9rem;">${log.name}</div>
+                </div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function toggleDrawer() {
+            const drawer = document.getElementById('side-drawer');
+            const overlay = document.getElementById('drawer-overlay');
+            drawer.classList.toggle('open');
+            overlay.classList.toggle('active');
+
+            if (drawer.classList.contains('open')) {
+                document.getElementById('edit-name').value = document.getElementById('current-name').innerText;
+                document.getElementById('edit-limit').value = document.getElementById('limit-val').innerText;
+            }
+        }
+
+        async function saveVenue() {
+            const name = document.getElementById('edit-name').value;
+            const limit = document.getElementById('edit-limit').value;
+            await fetch('/api/update_venue', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: currentId, name: name, limit: limit })
+            });
+            toggleDrawer();
+            fetchStatus();
+        }
+
+        async function confirmReset() {
+            if (confirm("Reset current occupancy data?")) {
+                await fetch('/api/reset_venue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: currentId })
+                });
+                toggleDrawer();
+                fetchStatus();
+            }
+        }
+
+        async function silenceOverCapacity() {
+            await fetch('/api/silence_over_capacity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: currentId })
+            });
+            fetchStatus();
+        }
+
+        initCharts();
+        setInterval(fetchStatus, 1500);
+        fetchStatus();
+    </script>
+</body>
+
+</html>
