@@ -1,105 +1,147 @@
-# CrowdLumen Safety & Security | Full Project Report
+CrowdLumen Safety & Security
+Project Overview
 
-## 1. Project Overview
-**CrowdLumen Safety & Security** is an advanced Industrial IoT solution designed for real-time occupancy monitoring and emergency management across multiple venues. The system uses a combination of RFID/NFC technology, a centralized Python backend, and a premium web-based dashboard to ensure personnel safety and site security.
+CrowdLumen Safety & Security is an Industrial IoT solution for real-time occupancy monitoring and emergency management. It combines RFID/NFC tracking, a Python backend, and a web-based dashboard to ensure personnel safety and site security across multiple venues.
 
----
+This system is ideal for monitoring halls, VIP zones, classrooms, or any controlled environment with safety-critical requirements.
 
-## 2. Technical Stack
+Technical Stack
+Hardware
 
-### **Hardware**
-- **Microcontroller**: ESP32 (WROOM-32)
-- **Sensors**: 2x MFRC522 RFID/NFC Readers (Entry & Exit)
-- **Feedback**: Active Buzzer, WS2812B / Standard LEDs (Act G/R, Sys G/R)
-- **Communication**: 2.4GHz WiFi (REST API over HTTP)
+Microcontroller: ESP32 (WROOM-32)
 
-### **Backend (Software)**
-- **Language**: Python 3.x
-- **Framework**: Flask (with Flask-CORS)
-- **Database**: SQLite (for User Identity Mapping)
-- **State Management**: In-memory global state for multi-venue real-time counts.
+Sensors: 2x MFRC522 RFID/NFC Readers (Entry & Exit)
 
-### **Frontend (Dashboard)**
-- **Core**: HTML5, Vanilla CSS3 (Custom Glassmorphism theme)
-- **Typography**: Inter (Google Fonts)
-- **Visualization**: Chart.js (Line trends and Doughnut gauges)
-- **Real-time**: AJAX Polling (1.5s interval)
+Feedback: Active buzzer, WS2812B / standard LEDs
 
----
+Communication: WiFi (REST API over HTTP)
 
-## 3. System Architecture & Working
+Backend (Software)
 
-### **A. Firmware Logic (ESP32)**
-The firmware acts as the "Edge Device." It handles hardware interrupts from two RFID readers.
-- **Entry Reader**: Taps are sent to the backend as `type: entry`.
-- **Exit Reader**: Taps are sent to the backend as `type: exit`.
-- **Feedback Loop**: After every tap, the device waits for a response from the server.
-    - `allowed`: Green LED flash + Short beep.
-    - `denied`: Red LED flash + Multi-beep.
-- **Background Checks**: Every 2 seconds, the device polls `/hw_status` to check for global alarms (Evacuation or Over-Capacity).
+Language: Python 3.x
 
-### **B. Backend Logic (Flask API)**
-The backend is the "Brain" of the system.
-- **Multi-Venue Management**: Supports multiple zones (e.g., Main Hall, VIP Lounge) with independent capacity limits.
-- **Identity Resolution**: Maps incoming RFID UIDs to human-readable names using the SQLite database. If a tag is unknown, it defaults to `Guest [UID]`.
-- **Safety Overlays**: 
-    - **Over-Capacity**: Detects when `count > limit` and triggers a warning state.
-    - **Evacuation Protocol**: Tracks "Danger Zones" (people inside) vs "Muster Points" (people safe).
+Framework: Flask + Flask-CORS
 
-### **C. Command Dashboard (Frontend)**
-A professional UI for security officers.
-- **Main View**: Dashboard showing current occupancy, gauges, and live trend charts.
-- **Venue Picker**: Sidelist to switch between different monitored zones.
-- **Management Drawer**: Allows changing venue names, setting capacity limits, or resetting counts.
-- **Emergency Protocol**: A high-contrast, strobe-red interface with real-time "Missing Personnel" tracking.
+Database: SQLite for User Identity Mapping
 
----
+State Management: In-memory for real-time multi-venue occupancy
 
-## 4. Key Features
+Frontend (Dashboard)
 
-1.  **Dual-Reader Occupancy**: Precise entry/exit tracking using separate readers for directional accuracy.
-2.  **Over-Capacity Alarm**: 
-    - **Visual**: Dashboard banner with a "Silence" option.
-    - **Physical**: ESP32 triggers a repeated 1-second pulse beep.
-3.  **Emergency Evacuation**: 
-    - One-click trigger from the dashboard.
-    - Triggers a continuous strobe buzzer on all hardware.
-    - Live list of "Missing" personnel (those who haven't tapped "Exit" yet).
-4.  **Live Activity Logs**: Real-time toast notifications for every tap, including user names and timestamps.
+Core: HTML5 + CSS3 (Custom Glassmorphism theme)
 
----
+Typography: Inter (Google Fonts)
 
-## 5. System Workflow
+Visualization: Chart.js (Line trends and Doughnut gauges)
 
-1.  **Detection**: Personnel taps an RFID/NFC tag on the **Entry Reader**.
-2.  **Request**: ESP32 sends UID and Reader Info to `POST /api/tap`.
-3.  **Processing**: 
-    - Backend looks up name in `database.db`.
-    - Updates `VENUES[current_id].count` and adds UID to the `occupants` set.
-    - Logs the event in the history.
-4.  **Feedback**: Server returns JSON response; ESP32 flashes **Green LED**.
-5.  **Sync**: The web dashboard (polling every 1.5s) updates the **Gauge Chart** and adds a **Live Toast**.
-6.  **Alerting**: If the limit is 10 and the new count is 11:
-    - Dashboard shows **⚠️ OVER CAPACITY**.
-    - ESP32 starts a pulsing alarm.
-7.  **Emergency**: Security triggers "Evacuation." 
-    - Hardware enters **Continuous Alarm Mode**.
-    - Dashboard moves to the **Evacuation Page**, listing all UIDs currently inside.
+Real-time: AJAX polling every 1.5 seconds
 
----
+System Architecture
+Firmware (ESP32)
 
-## 6. Directory Structure
-```
+Handles hardware interrupts from dual RFID readers.
+
+Entry Reader → sends type: entry to backend.
+
+Exit Reader → sends type: exit to backend.
+
+Feedback to user via LEDs and buzzer.
+
+Polls /hw_status every 2 seconds to check global alerts.
+
+Backend (Flask API)
+
+Manages multi-venue occupancy with independent capacity limits.
+
+Maps RFID UIDs to names; defaults to Guest [UID] if unknown.
+
+Monitors safety overlays:
+
+Over-capacity alerts
+
+Evacuation tracking
+
+Frontend Dashboard
+
+Displays live occupancy, gauges, and trends.
+
+Provides venue switching, capacity management, and reset functions.
+
+Emergency interface highlights missing personnel and triggers alerts.
+
+Key Features
+
+Dual-Reader Occupancy: Accurate entry/exit tracking.
+
+Over-Capacity Alarm:
+
+Visual dashboard alert with silence option
+
+Physical buzzer and LED pulse
+
+Emergency Evacuation:
+
+One-click dashboard trigger
+
+Continuous alarm mode
+
+Real-time missing personnel tracking
+
+Live Activity Logs: Timestamped notifications for each tap
+
+System Workflow
+
+User taps RFID/NFC tag on Entry Reader.
+
+ESP32 sends POST /api/tap with UID and reader info.
+
+Backend updates venue count, occupants list, and logs event.
+
+ESP32 receives response → flashes Green/Red LED accordingly.
+
+Dashboard syncs every 1.5s → updates gauges and live logs.
+
+Over-capacity detected → dashboard alert + buzzer pulse.
+
+Evacuation mode → continuous alarms + list of people still inside.
+
+Directory Structure
 /safety_project_v2
 ├── /firmware
-│   ├── platformio.ini      # Project config
-│   └── src/main.cpp        # Dual RFID & Alarm Logic
+│   ├── platformio.ini      # Project configuration
+│   └── src/main.cpp        # Dual RFID & alarm logic
 ├── /backend
-│   ├── app.py              # Flask Server & Logic
-│   ├── database.db         # User Database
-│   └── add_user.py         # Utility to register tags
+│   ├── app.py              # Flask server & API
+│   ├── database.db         # User identity database
+│   └── add_user.py         # Utility to register RFID tags
 └── /frontend
-    ├── index.html          # Main Monitoring Dashboard
-    ├── evacuation.html     # Emergency Protocol Page
-    └── style.css           # Premium Glassmorphism UI
-```
+    ├── index.html          # Main monitoring dashboard
+    ├── evacuation.html     # Emergency interface
+    └── style.css           # Glassmorphism UI styling
+Setup Instructions
+
+Firmware: Upload /firmware/src/main.cpp to ESP32 using PlatformIO.
+
+Backend:
+
+Install Python dependencies:
+
+pip install flask flask-cors
+
+Run server:
+
+python app.py
+
+Frontend: Open /frontend/index.html in a browser (works locally).
+
+Connect ESP32 to WiFi → server API endpoint for real-time sync.
+
+Future Enhancements
+
+Integrate video-based crowd counting and density analysis.
+
+Add AI-based predictive alerts for crowd congestion or chaos.
+
+Link with audio sensors for real-time panic detection.
+
+Combine with RFID/NFC identity system for full hybrid monitoring.
