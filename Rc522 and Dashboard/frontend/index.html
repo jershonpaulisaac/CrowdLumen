@@ -89,9 +89,13 @@
 
             <!-- RIGHT: ACTIVITY & PEOPLE -->
             <section class="card">
-                <div class="side-tabs">
-                    <button class="tab-btn active" onclick="switchSideTab('logs')">ACTIVITY</button>
-                    <button class="tab-btn" onclick="switchSideTab('occupants')">PEOPLE</button>
+                <div class="side-tabs" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <button class="tab-btn active" onclick="switchSideTab('logs')">ACTIVITY</button>
+                        <button class="tab-btn" onclick="switchSideTab('occupants')">PEOPLE</button>
+                    </div>
+                    <button class="btn-danger" style="margin: 0; padding: 4px 8px; font-size: 0.7rem;"
+                        onclick="clearLogs()" id="clear-logs-btn">CLEAR LOGS</button>
                 </div>
 
                 <div class="stream-content" id="stream-content">
@@ -275,18 +279,21 @@
                     container.innerHTML = '<div class="empty-state">No recent activity</div>';
                     return;
                 }
-                container.innerHTML = data.logs.map(log => `
-                    <div class="log-item ${log.type}">
-                        <div class="log-icon" style="font-size: 0.8rem; font-weight: 800;">${log.type === 'entry' ? 'IN' : 'OUT'}</div>
+                container.innerHTML = data.logs.map(log => {
+                    let iconText = log.type === 'entry' ? 'IN' : log.type === 'exit' ? 'OUT' : '⚠';
+                    let nameColor = log.type === 'alert' ? 'color: #ff3333;' : '';
+                    return `
+                    <div class="log-item ${log.type}" style="${log.type === 'alert' ? 'border-left: 3px solid red; background: rgba(255,0,0,0.1);' : ''}">
+                        <div class="log-icon" style="font-size: 0.8rem; font-weight: 800; ${log.type === 'alert' ? 'color: red;' : ''}">${iconText}</div>
                         <div class="log-info">
                             <div class="log-header">
-                                <span class="log-name">${log.name}</span>
+                                <span class="log-name" style="${nameColor}">${log.name}</span>
                                 <span class="log-time">${log.time}</span>
                             </div>
-                            <div class="log-msg">${log.venue}</div>
+                            <div class="log-msg" style="${log.type === 'alert' ? 'color: #ffaa00;' : ''}">${log.uid !== 'SYSTEM' ? '[' + log.uid + '] ' : ''}${log.venue}</div>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             } else {
                 if (data.occupants.length === 0) {
                     container.innerHTML = '<div class="empty-state">Venue is empty</div>';
@@ -319,6 +326,15 @@
                 body: JSON.stringify({ id: id })
             });
             fetchStatus();
+        }
+
+        async function clearLogs() {
+            if (confirm("Clear all activity logs from the system?")) {
+                await fetch('/api/clear_logs', {
+                    method: 'POST'
+                });
+                fetchStatus();
+            }
         }
 
         function showToast(log) {

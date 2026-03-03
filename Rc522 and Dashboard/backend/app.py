@@ -140,6 +140,12 @@ def set_venue():
     CURRENT_VENUE_ID = int(request.json.get('id'))
     return jsonify({"status": "ok"})
 
+@app.route('/api/clear_logs', methods=['POST'])
+def clear_logs():
+    global TAP_LOGS
+    TAP_LOGS = []
+    return jsonify({"status": "ok"})
+
 @app.route('/api/update_venue', methods=['POST'])
 def update_venue():
     # Rename or Change Limit
@@ -160,6 +166,25 @@ def reset_venue():
         VENUES[vid]['occupants'] = set()
         return jsonify({"status": "ok"})
     return jsonify({"status": "error"}), 400
+
+@app.route('/api/system_alert', methods=['POST'])
+def system_alert():
+    data = request.get_json()
+    msg = data.get('message', 'Unknown Alert')
+    source = data.get('source', 'SYSTEM')
+    
+    current_venue_name = VENUES[CURRENT_VENUE_ID]['name']
+    
+    event = {
+        "name": msg,
+        "uid": source,
+        "venue": current_venue_name,
+        "type": "alert",
+        "time": datetime.now().strftime("%H:%M:%S")
+    }
+    TAP_LOGS.insert(0, event)
+    if len(TAP_LOGS) > 50: TAP_LOGS.pop()
+    return jsonify({"status": "ok"})
 
 # --- API: EVACUATION ALARM ---
 @app.route('/api/evac_status', methods=['GET'])
@@ -252,4 +277,4 @@ def serve_static(filename):
 
 if __name__ == '__main__':
     init_db()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=True)

@@ -29,7 +29,7 @@ class VisualEngine:
     def __init__(self, camera_index=0):
         self.camera_index = camera_index
         self.cap = None
-        self.detector = HumanDetector(confidence=0.35)
+        self.detector = HumanDetector(confidence=0.60) # Increased to 0.60 to ignore hands/legs false positives
         self.tracker = CentroidTracker(max_disappeared=15)
         
         # Analytics State
@@ -46,6 +46,7 @@ class VisualEngine:
         self.current_threat = "NORMAL"
         self.threat_color = "green"
         self.current_reason = "System Initializing..."
+        self.frame_count = 0
         
         # Thread Decoupling State
         self.latest_raw_frame = None
@@ -138,10 +139,10 @@ class VisualEngine:
             # Sync to render loop
             self.last_rects = rects
             self.last_objects = objects
-
     def analyze_scene(self, objects):
-        count = len(objects)
-        self.person_count = count
+        # The tracked objects may hold "ghost" IDs for several frames due to tracker max_disappeared leniency.
+        # So we use the latest raw YOLO detections length directly for accurate live counts.
+        self.person_count = len(self.last_rects) 
         self.grid_density.fill(0)
         self.flow_conflicts = []
         
@@ -192,11 +193,11 @@ class VisualEngine:
                     self.flow_conflicts.append(cell)
 
         # Chaos Metric
-        avg_scene_speed = total_speed / count if count > 0 else 0
+        avg_scene_speed = total_speed / self.person_count if self.person_count > 0 else 0
         self.chaos_metric = avg_scene_speed
         
         # Risk Scoring
-        max_dens = np.max(self.grid_density) if count > 0 else 0
+        max_dens = np.max(self.grid_density) if self.person_count > 0 else 0
         dens_score = min(max_dens / 8.0, 1.0)
         conflict_score = min(len(self.flow_conflicts) / 3.0, 1.0)
         chaos_score = min(avg_scene_speed / 25.0, 1.0)
@@ -208,12 +209,35 @@ class VisualEngine:
             status, color, reason = "CRITICAL", "#FF3333", "HIGH RISK: Flow conflicts + Heavy overcrowding detected!"
         elif self.risk_level > 0.4:
             status, color, reason = "WARNING", "#FFBB00", "WARNING: Moderate congestion with conflicting movement."
-        elif count > 0 and avg_scene_speed > 20:
-             status, color, reason = "PANIC?", "#FF00FF", "SUSPICIOUS: Sudden high-speed movement detected."
+        elif self.person_count > 0 and avg_scene_speed > 20:
+             status, color, reason = "PANIC?", "#FF00FF", "SUSPICIOUS ACTIVITY DETECTED"
+
+        old_threat = self.current_threat
 
         self.current_threat = status
         self.threat_color = color
         self.current_reason = reason
+        self.frame_count += 1
+        
+        if status == "PANIC?" and old_threat != "PANIC?":
+            try:
+                import requests
+                requests.post("http://localhost:5001/api/system_alert", json={
+                    "message": "VI system panic detected ",
+                }, timeout=1)
+            except:
+                pass
+
+        # Send Peak Info To RC522 System
+        if self.risk_level > 0.7 and self.frame_count % 10 == 0:
+            try:
+                import requests
+                requests.post("http://localhost:5001/api/system_alert", json={
+                    "message": f"AI Visual System peaked: {reason}",
+                    "source": "AI_VISUAL"
+                }, timeout=1)
+            except:
+                pass
         
         if self.risk_level > 0.4 and self.frame_count % 30 == 0:
             self._log_event(status)

@@ -87,27 +87,55 @@
         /* Threat Banner */
         .threat-banner {
             margin-top: 15px;
-            padding: 20px;
-            border-radius: 12px;
+            padding: 25px 20px;
+            border-radius: 16px;
             text-align: center;
-            border: 2px solid green;
-            background: rgba(0, 255, 0, 0.05);
-            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .threat-banner::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.03) 50%, transparent);
+            transform: rotate(30deg);
+            animation: scanline 4s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scanline {
+            0% {
+                transform: translateY(-100%) rotate(30deg);
+            }
+
+            100% {
+                transform: translateY(100%) rotate(30deg);
+            }
         }
 
         .threat-title {
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
-            opacity: 0.8;
+            letter-spacing: 3px;
+            margin-bottom: 12px;
+            color: var(--text-dim);
+            font-weight: 600;
         }
 
         .threat-level {
             font-size: 28px;
-            font-weight: 800;
+            font-weight: 900;
             color: green;
-            text-shadow: 0 0 10px currentColor;
+            text-shadow: 0 0 15px currentColor;
+            letter-spacing: 1px;
         }
 
         .reason-box {
@@ -262,8 +290,8 @@
 
         <div class="section-title">Video Source</div>
         <select id="cameraSelect" onchange="changeCamera()">
-            <option value="0">Integrated Webcam (0)</option>
-            <option value="1">USB Camera (1)</option>
+            <option value="0">Integrated Webcam</option>
+            <option value="1">USB Camera</option>
         </select>
 
         <div class="section-title" style="margin-top:40px;">Predictive Risk Level</div>
@@ -408,11 +436,19 @@
                     tLevel.style.color = data.color;
                     banner.style.borderColor = data.color;
 
-                    // Convert hex to rgba for background
-                    let bgCol = "rgba(0,255,0,0.05)";
-                    if (data.color === "#FF3333") bgCol = "rgba(255,0,0,0.1)";
-                    if (data.color === "#FFBB00") bgCol = "rgba(255,200,0,0.1)";
-                    banner.style.backgroundColor = bgCol;
+                    // Convert hex to rgba for background and box shadow
+                    let bgCol = "linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))";
+                    let rgbColor = "0,255,0";
+                    if (data.color === "#FF3333") {
+                        bgCol = "linear-gradient(145deg, rgba(255, 51, 51, 0.15), rgba(15, 23, 42, 0.9))";
+                        rgbColor = "255,51,51";
+                    } else if (data.color === "#FFBB00" || data.color === "#FF00FF") {
+                        bgCol = "linear-gradient(145deg, rgba(255, 187, 0, 0.15), rgba(15, 23, 42, 0.9))";
+                        // Use the hex directly if we can't map it to exact RGB strictly
+                        rgbColor = data.color === "#FFBB00" ? "255,187,0" : "255,0,255";
+                    }
+                    banner.style.background = bgCol;
+                    banner.style.boxShadow = `0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(${rgbColor}, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)`;
 
                     // Reason text
                     document.getElementById('reasonText').innerText = data.reason;
@@ -430,8 +466,8 @@
             });
         }
 
-        // Poll metrics every 500ms
-        setInterval(updateMetrics, 500);
+        // Poll metrics every 100ms
+        setInterval(updateMetrics, 100);
     </script>
 </body>
 
