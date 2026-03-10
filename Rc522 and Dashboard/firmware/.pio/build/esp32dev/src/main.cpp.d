@@ -133,11 +133,6 @@
  C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_hw_support/include/soc/esp32/spiram.h \
  C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/cores/esp32/io_pin_remap.h \
  C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/cores/esp32/Arduino.h \
- C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src/SPI.h \
- C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp32-hal-spi.h \
- .pio/libdeps/esp32dev/MFRC522/src/MFRC522.h \
- .pio/libdeps/esp32dev/MFRC522/src/require_cpp11.h \
- .pio/libdeps/esp32dev/MFRC522/src/deprecated.h \
  C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFi.h \
  C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/cores/esp32/Print.h \
  C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/cores/esp32/IPv6Address.h \
@@ -241,4 +236,33 @@
  C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/mbedtls/mbedtls/include/mbedtls/error.h \
  .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson.h \
  .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson.hpp \
- .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson/Configuration.hpp
+ .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson/Configuration.hpp \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEDevice.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/bt/host/bluedroid/api/include/api/esp_gap_ble_api.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/bt/host/bluedroid/api/include/api/esp_bt_defs.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/bt/host/bluedroid/api/include/api/esp_gattc_api.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/bt/host/bluedroid/api/include/api/esp_gatt_defs.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/bt/include/esp32/include/esp_bt.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEServer.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/bt/host/bluedroid/api/include/api/esp_gatts_api.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEUUID.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/bt/host/bluedroid/api/include/api/esp_gatt_defs.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEAdvertising.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/RTOS.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_ringbuf/include/freertos/ringbuf.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLECharacteristic.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEDescriptor.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEValue.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEService.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLESecurity.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEAddress.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEClient.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLERemoteService.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLERemoteCharacteristic.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLERemoteDescriptor.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEAdvertisedDevice.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEScan.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEUtils.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEUtils.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEScan.h \
+ C:/Users/jersh/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src/BLEAdvertisedDevice.h

@@ -15,8 +15,8 @@ class HumanDetector:
         Detects humans in the frame.
         Returns a list of bounding boxes [(x1, y1, x2, y2), ...]
         """
-        # Optimize: restrict to class 0 (person) directly in inference
-        results = self.model(frame, verbose=False, stream=True, classes=[0], conf=self.confidence)
+        # Optimize: restrict to class 0 (person), threshold via confidence, merge overlaps with IOU
+        results = self.model(frame, verbose=False, stream=True, classes=[0], conf=self.confidence, iou=0.40)
         rects = []
         
         for result in results:

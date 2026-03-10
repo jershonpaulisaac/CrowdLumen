@@ -1,33 +1,40 @@
 #include <Arduino.h>
-#include <SPI.h>
-#include <MFRC522.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEScan.h>
+#include <BLEAdvertisedDevice.h>
+#include <vector>
+#include <map>
 
 // --- CONFIGURATION ---
 const char* WIFI_SSID = "JERSHON-LAP 7737";
 const char* WIFI_PASS = "christ$$777";
-const char* BASE_URL = "http://192.168.137.1:5000/api"; 
+const char* BASE_URL = "http://192.168.137.1:5001/api"; 
 
-// --- PIN MAPPING ---
-#define SS_PIN_1  21   // Reader 1 (Entry)
-#define SS_PIN_2  5    // Reader 2 (Exit)
-#define RST_PIN   22   // Shared Reset
-#define BUZZER    15
-#define LED_SYS_G 16
-#define LED_SYS_R 17
-#define LED_ACT_G 4
-#define LED_ACT_R 2
-
-// --- OBJECTS ---
-MFRC522 reader1(SS_PIN_1, RST_PIN);
-MFRC522 reader2(SS_PIN_2, RST_PIN);
+// --- PIN MAPPING (NEW) ---
+#define LED_GREEN 2
+#define LED_RED   5
+#define BUZZER    4
 
 // --- STATE ---
 bool alarmActive = false;
 bool overCapAlarm = false;
 unsigned long lastEvacCheck = 0;
+
+// --- BLE MULTI-TRACKING STATE ---
+int scanTime = 2; // scan interval in seconds
+BLEScan* pBLEScan;
+struct PhoneState {
+  unsigned long lastSeen;
+  bool isInVenue;
+};
+std::map<String, PhoneState> activeDevices;
+std::vector<String> pendingEntries;
+std::vector<String> pendingExits;
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 // --- UTILS ---
 void beep(int times, int duration) {
@@ -40,17 +47,26 @@ void beep(int times, int duration) {
 }
 
 void feedbackSuccess() {
-  digitalWrite(LED_ACT_G, HIGH);
-  beep(1, 100);
-  delay(1000);
-  digitalWrite(LED_ACT_G, LOW);
+  digitalWrite(LED_GREEN, HIGH);
+  beep(1, 100);  // 1 beep for allowed entry
+  delay(100);
+  digitalWrite(LED_GREEN, LOW);
 }
 
-void feedbackDeny() {
-  digitalWrite(LED_ACT_R, HIGH);
-  beep(2, 100);
-  delay(1000);
-  digitalWrite(LED_ACT_R, LOW);
+void feedbackAlreadyIn() {
+  digitalWrite(LED_RED, HIGH);
+  beep(2, 80);   // 2 beeps for denied / already in
+  delay(40);
+  digitalWrite(LED_RED, LOW);
+}
+
+void feedbackExit() {
+  digitalWrite(LED_GREEN, HIGH);
+  digitalWrite(LED_RED,   HIGH);
+  beep(1, 60);   // 1 short beep for exit
+  delay(140);
+  digitalWrite(LED_GREEN, LOW);
+  digitalWrite(LED_RED,   LOW);
 }
 
 void checkHardwareStatus() {
@@ -75,84 +91,145 @@ void sendTap(String uid, String type) {
     HTTPClient http;
     http.begin(String(BASE_URL) + "/tap");
     http.addHeader("Content-Type", "application/json");
+    // Forward the MAC address as UID and proper presence state ("entry" / "exit")
     String json = "{\"uid\": \"" + uid + "\", \"type\": \"" + type + "\"}";
     int code = http.POST(json);
     if(code == 200) {
        String payload = http.getString();
        DynamicJsonDocument doc(512);
        deserializeJson(doc, payload);
-       if(strcmp(doc["status"], "allowed") == 0) feedbackSuccess();
-       else feedbackDeny();
+       
+       if (type == "exit") {
+         feedbackExit();
+       } else if (type == "entry") {
+         const char* msg = doc["msg"];
+         if (msg && strstr(msg, "Already In")) {
+           feedbackAlreadyIn();
+         } else if (strcmp(doc["status"], "allowed") == 0) {
+           feedbackSuccess();
+         } else {
+           feedbackAlreadyIn();
+         }
+       }
     } else {
-       feedbackDeny();
+       if (type == "entry") feedbackAlreadyIn();
     }
     http.end();
-  } else feedbackDeny();
+  } else {
+    if (type == "entry") feedbackAlreadyIn();
+  }
 }
 
-String readUID(MFRC522 &mfrc522) {
-  String content= "";
-  for (byte i = 0; i < mfrc522.uid.size; i++) {
-     content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? "0" : ""));
-     content.concat(String(mfrc522.uid.uidByte[i], HEX));
+class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
+    void onResult(BLEAdvertisedDevice advertisedDevice) {
+      // Proximity threshold: target devices that are in moderate close range (>-55 RSSI)
+      // -35 was too strict because many phones have weaker Bluetooth broadcast power. 
+      if (advertisedDevice.getRSSI() > -55) {
+        String mac = advertisedDevice.getAddress().toString().c_str();
+        mac.toUpperCase();
+        mac.replace(":", ""); // Formatting MAC to look like standard UID 
+        
+        portENTER_CRITICAL(&mux);
+        unsigned long currentMillis = millis();
+        // Register new arrival if we haven't seen it, or it was outside the venue
+        if (activeDevices.find(mac) == activeDevices.end() || !activeDevices[mac].isInVenue) {
+          activeDevices[mac] = {currentMillis, true};
+          pendingEntries.push_back(mac);
+        } else {
+          // Device still lingering in proximity, quietly update last tick
+          activeDevices[mac].lastSeen = currentMillis;
+        }
+        portEXIT_CRITICAL(&mux);
+      }
+    }
+};
+
+void cleanupAndProcessTaps() {
+  unsigned long currentMillis = millis();
+  
+  portENTER_CRITICAL(&mux);
+  // Mark departures if device hasn't been seen for 20 seconds
+  for (auto it = activeDevices.begin(); it != activeDevices.end(); ) {
+    if (it->second.isInVenue && (currentMillis - it->second.lastSeen > 20000)) {
+      pendingExits.push_back(it->first);
+      it = activeDevices.erase(it);
+    } else {
+      ++it;
+    }
   }
-  content.toUpperCase();
-  return content;
+  
+  // Clone queues for processing
+  std::vector<String> entriesToProcess = pendingEntries;
+  pendingEntries.clear();
+  std::vector<String> exitsToProcess = pendingExits;
+  pendingExits.clear();
+  portEXIT_CRITICAL(&mux);
+
+  // Output Network requests outside the critical section
+  for(String mac : entriesToProcess) {
+    sendTap(mac, "entry");
+  }
+  for(String mac : exitsToProcess) {
+    sendTap(mac, "exit");
+  }
 }
 
 void setup() {
   Serial.begin(115200);
   pinMode(BUZZER, OUTPUT);
-  pinMode(LED_SYS_G, OUTPUT);
-  pinMode(LED_SYS_R, OUTPUT);
-  pinMode(LED_ACT_G, OUTPUT);
-  pinMode(LED_ACT_R, OUTPUT);
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
 
-  SPI.begin();
-  reader1.PCD_Init();
-  reader2.PCD_Init();
-  
+  // WiFi Setup
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    digitalWrite(LED_SYS_R, !digitalRead(LED_SYS_R));
+    digitalWrite(LED_RED, !digitalRead(LED_RED)); // Flashing RED on connection loop
   }
-  digitalWrite(LED_SYS_R, LOW);
-  digitalWrite(LED_SYS_G, HIGH);
+  digitalWrite(LED_RED, LOW);
+  
+  // Successful Boot Feedback
+  digitalWrite(LED_GREEN, HIGH);
   beep(2, 100);
+  delay(1000);
+  digitalWrite(LED_GREEN, LOW);
+
+  // BLE Setup
+  BLEDevice::init("BLE_GateNode");
+  pBLEScan = BLEDevice::getScan();
+  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
+  pBLEScan->setActiveScan(true); // Get more payload, takes a bit more power footprint
+  pBLEScan->setInterval(100);
+  pBLEScan->setWindow(99);  
 }
 
 void loop() {
   checkHardwareStatus();
 
+  // Priority Alarms
   if (alarmActive) {
     digitalWrite(BUZZER, HIGH);
-    digitalWrite(LED_SYS_R, HIGH);
+    digitalWrite(LED_RED, HIGH);
     delay(200);
     digitalWrite(BUZZER, LOW);
-    digitalWrite(LED_SYS_R, LOW);
+    digitalWrite(LED_RED, LOW);
     delay(200);
     return;
   }
 
   if (overCapAlarm) {
     digitalWrite(BUZZER, HIGH);
-    digitalWrite(LED_ACT_R, HIGH);
+    digitalWrite(LED_RED, HIGH);
     delay(100);
     digitalWrite(BUZZER, LOW);
-    digitalWrite(LED_ACT_R, LOW);
-    delay(1000); 
+    digitalWrite(LED_RED, LOW);
+    delay(400); // 400ms to allow more frequent scanning cycles than a pure wait
   }
 
-  if (reader1.PICC_IsNewCardPresent() && reader1.PICC_ReadCardSerial()) {
-     sendTap(readUID(reader1), "entry");
-     reader1.PICC_HaltA();
-     reader1.PCD_StopCrypto1();
-  }
+  // Scanning loop
+  pBLEScan->start(scanTime, false);
+  pBLEScan->clearResults(); 
 
-  if (reader2.PICC_IsNewCardPresent() && reader2.PICC_ReadCardSerial()) {
-     sendTap(readUID(reader2), "exit");
-     reader2.PICC_HaltA();
-     reader2.PCD_StopCrypto1();
-  }
+  // Process REST pushes
+  cleanupAndProcessTaps();
 }
